@@ -50,12 +50,13 @@ function findFirstAvailableDevice(list) {
 
     var available_runtimes = {};
 
-    list.runtimes.forEach(function(runtime) {
-        available_runtimes[ runtime.name ] = (runtime.availability === '(available)');
+    list.runtimes.forEach(function (runtime) {
+        // available_runtimes[runtime.name] = (runtime.availability === '(available)');
+        available_runtimes[runtime.identifier] = (runtime.availability === '(available)');
     });
 
-    Object.keys(list.devices).some(function(deviceGroup) {
-        return list.devices[deviceGroup].some(function(device) {
+    Object.keys(list.devices).some(function (deviceGroup) {
+        return list.devices[deviceGroup].some(function (device) {
             if (available_runtimes[deviceGroup]) {
                 ret_obj = {
                     name: device.name,
@@ -83,12 +84,15 @@ function findRuntimesGroupByDeviceProperty(list, deviceProperty, availableOnly, 
     var runtimes = {};
     var available_runtimes = {};
 
-    list.runtimes.forEach(function(runtime) {
-        available_runtimes[ runtime.name ] = (runtime.availability === '(available)');
+    list.runtimes.forEach(function (runtime) {
+        available_runtimes[runtime.identifier] = (runtime.availability === '(available)');
+
+
+        // available_runtimes[runtime.name] = (runtime.availability === '(available)');
     });
 
-    Object.keys(list.devices).forEach(function(deviceGroup) {
-        list.devices[deviceGroup].forEach(function(device) {
+    Object.keys(list.devices).forEach(function (deviceGroup) {
+        list.devices[deviceGroup].forEach(function (device) {
             var devicePropertyValue = device[deviceProperty];
 
             if (options.lowerCase) {
@@ -114,9 +118,9 @@ function findAvailableRuntime(list, device_name) {
     device_name = device_name.toLowerCase();
 
     var all_druntimes = findRuntimesGroupByDeviceProperty(list, 'name', true, { lowerCase: true });
-    var druntime = all_druntimes[ filterDeviceName(device_name) ] || all_druntimes[ device_name ];
+    var druntime = all_druntimes[filterDeviceName(device_name)] || all_druntimes[device_name];
     var runtime_found = druntime && druntime.length > 0;
-
+    // console.log(all_druntimes);
     if (!runtime_found) {
         console.error(util.format('No available runtimes could be found for "%s".', device_name));
         process.exit(1);
@@ -152,6 +156,7 @@ function getDeviceFromDeviceTypeId(devicetypeid) {
         arr = devicetypeid.split(',');
     }
 
+
     // get the devicetype from --devicetypeid
     // --devicetypeid is a string in the form "devicetype, runtime_version" (optional: runtime_version)
     var devicetype = null;
@@ -168,12 +173,13 @@ function getDeviceFromDeviceTypeId(devicetypeid) {
 
     // check whether devicetype has the "com.apple.CoreSimulator.SimDeviceType." prefix, if not, add it
     var prefix = 'com.apple.CoreSimulator.SimDeviceType.';
+
     if (devicetype.indexOf(prefix) !== 0) {
         devicetype = prefix + devicetype;
     }
 
     // now find the devicename from the devicetype
-    var devicename_found = list.devicetypes.some(function(deviceGroup) {
+    var devicename_found = list.devicetypes.some(function (deviceGroup) {
         if (deviceGroup.identifier === devicetype) {
             ret_obj.name = deviceGroup.name;
             return true;
@@ -199,10 +205,10 @@ function getDeviceFromDeviceTypeId(devicetypeid) {
     }
 
     // now find the deviceid (by runtime and devicename)
-    var deviceid_found = Object.keys(list.devices).some(function(deviceGroup) {
+    var deviceid_found = Object.keys(list.devices).some(function (deviceGroup) {
         // found the runtime, now find the actual device matching devicename
         if (deviceGroup === ret_obj.runtime) {
-            return list.devices[deviceGroup].some(function(device) {
+            return list.devices[deviceGroup].some(function (device) {
                 if (filterDeviceName(device.name).toLowerCase() === filterDeviceName(ret_obj.name).toLowerCase()) {
                     ret_obj.id = device.udid;
                     return true;
@@ -230,7 +236,7 @@ function parseEnvironmentVariables(envVariables, fixsymctl) {
     fixsymctl = typeof fixsymctl != 'undefined' ? fixsymctl : true;
 
     var envMap = {};
-    envVariables.forEach(function(variable) {
+    envVariables.forEach(function (variable) {
         var envPair = variable.split('=', 2);
         if (envPair.length == 2) {
             var key = envPair[0];
@@ -238,7 +244,7 @@ function parseEnvironmentVariables(envVariables, fixsymctl) {
             if (fixsymctl) {
                 key = 'SIMCTL_CHILD_' + key;
             }
-            envMap[ key ] = value;
+            envMap[key] = value;
         }
     });
     return envMap;
@@ -279,7 +285,7 @@ function fixNameKey(array, mapping) {
         return array;
     }
 
-    return array.map(function(elem) {
+    return array.map(function (elem) {
         var name = mapping[elem.name];
         if (name) {
             elem.name = name;
@@ -305,7 +311,7 @@ function fixSimCtlList(list) {
         'Apple TV 1080p': 'Apple TV',
         'iPad Pro': 'iPad Pro (9.7-inch)'
     };
-    Object.keys(list.devices).forEach(function(key) {
+    Object.keys(list.devices).forEach(function (key) {
         list.devices[key] = fixNameKey(list.devices[key], deviceNameMap);
     });
 
@@ -314,7 +320,7 @@ function fixSimCtlList(list) {
 
 var lib = {
 
-    init: function() {
+    init: function () {
         if (!simctl) {
             simctl = require('simctl');
         }
@@ -331,12 +337,12 @@ var lib = {
     },
 
     //jscs:disable disallowUnusedParams
-    showsdks: function(args) {
+    showsdks: function (args) {
         var options = { silent: true, runtimes: true };
         var list = simctl.list(options).json;
 
         var output = 'Simulator SDK Roots:\n';
-        list.runtimes.forEach(function(runtime) {
+        list.runtimes.forEach(function (runtime) {
             if (runtime.availability === '(available)') {
                 output += util.format('"%s" (%s)\n', runtime.name, runtime.buildversion);
                 output += util.format('\t(unknown)\n');
@@ -348,7 +354,7 @@ var lib = {
     //jscs:enable disallowUnusedParams
 
     //jscs:disable disallowUnusedParams
-    getdevicetypes: function(args) {
+    getdevicetypes: function (args) {
         var options = { silent: true };
         var list = simctl.list(options).json;
         list = fixSimCtlList(list);
@@ -356,24 +362,24 @@ var lib = {
         var druntimes = findRuntimesGroupByDeviceProperty(list, 'name', true, { lowerCase: true });
         var name_id_map = {};
 
-        list.devicetypes.forEach(function(device) {
-            name_id_map[ filterDeviceName(device.name).toLowerCase() ] = device.identifier;
+        list.devicetypes.forEach(function (device) {
+            name_id_map[filterDeviceName(device.name).toLowerCase()] = device.identifier;
         });
 
         list = [];
-        var remove = function(devicename, runtime) {
+        var remove = function (devicename, runtime) {
             // remove "iOS" prefix in runtime, remove prefix "com.apple.CoreSimulator.SimDeviceType." in id
-            list.push(util.format('%s, %s', name_id_map[ devicename ].replace(/^com.apple.CoreSimulator.SimDeviceType./, ''), runtime.replace(/^iOS /, '')));
+            list.push(util.format('%s, %s', name_id_map[devicename].replace(/^com.apple.CoreSimulator.SimDeviceType./, ''), runtime.replace(/^iOS /, '')));
         };
 
-        var cur = function(devicename) {
-            return function(runtime) {
+        var cur = function (devicename) {
+            return function (runtime) {
                 remove(devicename, runtime);
             };
         };
 
         for (var deviceName in druntimes) {
-            var runtimes = druntimes[ deviceName ];
+            var runtimes = druntimes[deviceName];
             var dname = filterDeviceName(deviceName).toLowerCase();
 
             if (!(dname in name_id_map)) {
@@ -387,9 +393,9 @@ var lib = {
     //jscs:enable disallowUnusedParams
 
     //jscs:disable disallowUnusedParams
-    showdevicetypes: function(args) {
+    showdevicetypes: function (args) {
         var output = '';
-        this.getdevicetypes().forEach(function(device) {
+        this.getdevicetypes().forEach(function (device) {
             output += util.format('%s\n', device);
         });
 
@@ -397,18 +403,18 @@ var lib = {
     },
     //jscs:enable disallowUnusedParams
 
-    launch: function(app_path, devicetypeid, log, exit, setenv, argv) {
+    launch: function (app_path, devicetypeid, log, exit, setenv, argv) {
         var wait_for_debugger = false;
         var info_plist_path;
         var app_identifier;
 
-        info_plist_path = path.join(app_path,'Info.plist');
+        info_plist_path = path.join(app_path, 'Info.plist');
         if (!fs.existsSync(info_plist_path)) {
             console.error(info_plist_path + ' file not found.');
             process.exit(1);
         }
 
-        bplist.parseFile(info_plist_path, function(err, obj) {
+        bplist.parseFile(info_plist_path, function (err, obj) {
 
             if (err) {
                 // try to see if a regular plist parser will work
@@ -430,7 +436,7 @@ var lib = {
 
             var environmentVariables = parseEnvironmentVariables(setenv);
 
-            withInjectedEnvironmentVariablesToProcess(process, environmentVariables, function() {
+            withInjectedEnvironmentVariablesToProcess(process, environmentVariables, function () {
                 // get the deviceid from --devicetypeid
                 // --devicetypeid is a string in the form "devicetype, runtime_version" (optional: runtime_version)
                 var device = getDeviceFromDeviceTypeId(devicetypeid);
@@ -450,18 +456,18 @@ var lib = {
         });
     },
 
-    install: function(app_path, devicetypeid, log, exit) {
+    install: function (app_path, devicetypeid, log, exit) {
         var wait_for_debugger = false;
         var info_plist_path;
         var app_identifier;
 
-        info_plist_path = path.join(app_path,'Info.plist');
+        info_plist_path = path.join(app_path, 'Info.plist');
         if (!fs.existsSync(info_plist_path)) {
             console.error(info_plist_path + ' file not found.');
             process.exit(1);
         }
 
-        bplist.parseFile(info_plist_path, function(err, obj) {
+        bplist.parseFile(info_plist_path, function (err, obj) {
 
             if (err) {
                 throw err;
@@ -487,7 +493,7 @@ var lib = {
         });
     },
 
-    start: function(devicetypeid) {
+    start: function (devicetypeid) {
         var device = getDeviceFromDeviceTypeId(devicetypeid);
         simctl.extensions.start(device.id);
     },
